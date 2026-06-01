@@ -181,11 +181,11 @@ bunx prettier --write .
 - [x] 階段二：記憶體與背景數據處理層實作
   - [x] 建立 `lib/circular-buffer.ts`，實作固定長度的環狀緩衝區，確保重複利用陣列空間
   - [x] 建立 `workers/data.worker.ts`，在獨立執行緒中建立 WebSocket 連線與數據緩衝，並實作指數退避重連機制與 30 秒心跳檢測
-- [ ] 階段三：React 控制層與 Hook 整合
-  - [ ] 建立 `hooks/useHighFrequencyData.ts` 自定義 Hook，在 `useEffect` 中安全實例化 Web Worker，避免 SSR 階段報錯，且實作卸載清除機制以防重複連線
-  - [ ] 在 Hook 中使用 `useRef` 儲存最新的 Tick 數據與歷史資料，並設計**訂閱者模式 (onTick callback)** 將高頻數據流與 React 渲染流分離，避免觸發 React 重繪
-  - [ ] 整合 Page Visibility API，在頁面進入背景時通知 Worker 關閉連線，返回前景時重新連線，並在圖表上處理斷線期間的「數據空白區 (Whitespace)」
-  - [ ] 限制 `GET_DATA` 指令的調用時機，僅在圖表初始化與重連成功後執行一次，禁止在高頻更新中呼叫以避免 GC 壓力
+- [x] 階段三：React 控制層與 Hook 整合
+  - [x] 建立 `hooks/useHighFrequencyData.ts` 自定義 Hook，在 `useEffect` 中安全實例化 Web Worker，避免 SSR 階段報錯，且實作卸載清除機制以防重複連線
+  - [x] 在 Hook 中使用 `useRef` 儲存最新的 Tick 數據與歷史資料，並設計**訂閱者模式 (onTick callback)** 將高頻數據流與 React 渲染流分離，避免觸發 React 重繪
+  - [x] 整合 Page Visibility API，在頁面進入背景時通知 Worker 關閉連線，返回前景時重新連線，並在圖表上處理斷線期間的「數據空白區 (Whitespace)」
+  - [x] 限制 `GET_DATA` 指令的調用時機，僅在圖表初始化與重連成功後執行一次，禁止在高頻更新中呼叫以避免 GC 壓力
 - [ ] 階段四：圖表與動態 UI 渲染實作
   - [ ] 使用 `next/dynamic` 以 `ssr: false` 模式動態載入 `TradingChart.tsx`，避免 SSR 水合錯誤，且不使用 `suppressHydrationWarning`
   - [ ] 建立 `components/TradingChart.tsx` 元件，初始化 `lightweight-charts` (v5.2.0) 的 Canvas 繪圖區，並訂閱 Hook 的數據流直接調用 `series.update()`
