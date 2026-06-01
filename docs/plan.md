@@ -35,12 +35,16 @@ high-frequency-chart-mvp/
 ├── components/
 │   ├── PerformanceMonitor.tsx    # 效能監控面板：顯示即時 FPS 與數據吞吐量
 │   └── TradingChart.tsx          # 圖表組件：Canvas 渲染、rAF 循環與直接修改 DOM
+├── constants/
+│   └── chart.ts                  # 系統配置常數：集中管理心跳、重連、快取容量等常數
 ├── hooks/
 │   └── useHighFrequencyData.ts   # 自定義 Hook：管理 Web Worker 的生命週期與數據快照
 ├── lib/
 │   └── circular-buffer.ts        # 環狀緩衝區：實作固定長度陣列防止 GC 卡頓
 ├── scripts/
 │   └── mock-server.js            # 本地 Mock WebSocket 伺服器：模擬推送 Tick 資料
+├── types/
+│   └── chart.ts                  # 強型別定義：定義數據格式、連線狀態與 Worker 雙向通訊協定
 ├── workers/
 │   └── data.worker.ts            # Web Worker：於獨立執行緒處理 WS 連線與數據緩衝
 ├── .prettierrc                   # Prettier 程式碼格式化配置檔
@@ -174,9 +178,9 @@ bunx prettier --write .
   - [x] 建立 `.prettierrc` 設定代碼格式化規則
   - [x] 設定 `app/globals.css` 以 CSS-first 方式載入 Tailwind v4 與設定主題變數
   - [x] 撰寫 `scripts/mock-server.js`，使用 Bun 啟動高頻（每秒 100 次）Tick 數據推送與 PING/PONG 心跳響應 (ws@8.21.0)
-- [ ] 階段二：記憶體與背景數據處理層實作
-  - [ ] 建立 `lib/circular-buffer.ts`，實作固定長度的環狀緩衝區，確保重複利用陣列空間
-  - [ ] 建立 `workers/data.worker.ts`，在獨立執行緒中建立 WebSocket 連線與數據緩衝，並實作指數退避重連機制與 30 秒心跳檢測
+- [x] 階段二：記憶體與背景數據處理層實作
+  - [x] 建立 `lib/circular-buffer.ts`，實作固定長度的環狀緩衝區，確保重複利用陣列空間
+  - [x] 建立 `workers/data.worker.ts`，在獨立執行緒中建立 WebSocket 連線與數據緩衝，並實作指數退避重連機制與 30 秒心跳檢測
 - [ ] 階段三：React 控制層與 Hook 整合
   - [ ] 建立 `hooks/useHighFrequencyData.ts` 自定義 Hook，管理 Web Worker 實例的生命週期
   - [ ] 在 Hook 中使用 `useRef` 儲存最新的 Tick 數據與歷史陣列，避免引發 React 元件重繪
