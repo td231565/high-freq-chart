@@ -27,12 +27,12 @@ export default function PerformanceMonitor({
     historySize: 0,
   });
 
-  // 使用 useRef 同步保存數據，避免在每次收到 Tick 時都觸發 React 重繪 (每秒 100 次)
+  // 使用 useRef 同步保存數據，避免高頻 Tick 直接觸發 React 重繪
   const totalTicksRef = useRef<number>(0);
   const ticksThisSecondRef = useRef<number>(0);
   const historySizeRef = useRef<number>(0);
 
-  // 1. 訂閱歷史快照以獲取目前的環狀快取容量
+  // 1. 訂閱歷史快照以獲取目前的快取大小
   useEffect(() => {
     const unsubscribe = subscribeHistory((history) => {
       historySizeRef.current = history.length;
@@ -40,7 +40,7 @@ export default function PerformanceMonitor({
     return unsubscribe;
   }, [subscribeHistory]);
 
-  // 2. 訂閱單一 Tick，僅累加計數器而不更新 State
+  // 2. 訂閱 Tick，僅做加累加，維持效能
   useEffect(() => {
     const unsubscribe = subscribeTick((_tick) => {
       totalTicksRef.current++;
@@ -49,7 +49,7 @@ export default function PerformanceMonitor({
     return unsubscribe;
   }, [subscribeTick]);
 
-  // 3. 使用 requestAnimationFrame 精確統計 FPS，且限制每秒僅更新一次 React UI (1Hz)
+  // 3. 使用 requestAnimationFrame 精確統計 FPS (每秒更新一次 UI)
   useEffect(() => {
     let lastTime = performance.now();
     let frameCount = 0;
@@ -59,7 +59,6 @@ export default function PerformanceMonitor({
       const now = performance.now();
       frameCount++;
 
-      // 當時間過去一秒 (1000ms 以上)，計算效能指標並更新一次 React 狀態
       if (now - lastTime >= 1000) {
         const elapsedSeconds = (now - lastTime) / 1000;
         const currentFps = Math.round(frameCount / elapsedSeconds);
@@ -72,7 +71,6 @@ export default function PerformanceMonitor({
           historySize: historySizeRef.current,
         });
 
-        // 重置當秒的計數器與時間錨點
         frameCount = 0;
         ticksThisSecondRef.current = 0;
         lastTime = now;
@@ -88,40 +86,83 @@ export default function PerformanceMonitor({
     };
   }, []);
 
+  // 判斷系統狀態文字與指示燈色彩
+  const getSystemStatus = () => {
+    if (stats.fps >= 55) {
+      return { text: 'STABLE', color: 'text-[#089981] bg-[#089981]/10', dot: 'bg-[#089981]' };
+    } else if (stats.fps >= 40) {
+      return { text: 'WARNING', color: 'text-[#ff9800] bg-[#ff9800]/10', dot: 'bg-[#ff9800]' };
+    } else {
+      return { text: 'CRITICAL', color: 'text-[#f23645] bg-[#f23645]/10', dot: 'bg-[#f23645]' };
+    }
+  };
+
+  const sysStatus = getSystemStatus();
+
   return (
-    <section className="bg-slate-950 border border-slate-900 rounded-2xl p-6 space-y-4 shadow-xl">
-      <h2 className="text-base font-bold text-slate-200 flex items-center gap-2">
-        <span className="w-1.5 h-3 bg-emerald-500 rounded-full" />
-        效能與數據快取 (每秒僅重繪一次)
+    <section className="bg-[#1c2030] border border-[#2a2e39] rounded-lg p-4 flex flex-col min-h-[200px] select-none">
+      {/* Telemetry 扁平化邊框標題 */}
+      <h2 className="text-xs font-bold text-[#eceef2] mb-3.5 border-b border-[#2a2e39] pb-2 uppercase tracking-wider flex items-center justify-between font-mono-tv">
+        <div className="flex items-center space-x-1.5">
+          <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${sysStatus.dot}`} />
+          <span>核心效能與診斷 (Telemetry)</span>
+        </div>
+        <span
+          className={`text-[9px] font-bold px-1.5 py-0.5 rounded tracking-normal ${sysStatus.color}`}
+        >
+          {sysStatus.text}
+        </span>
       </h2>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-900">
-          <div className="text-xs text-slate-500">主執行緒 FPS</div>
-          <div className="text-2xl font-mono font-extrabold text-slate-200 mt-1 flex items-baseline gap-1">
-            {stats.fps} <span className="text-xs text-slate-600 font-normal">fps</span>
-          </div>
+      {/* FPS 微型進度狀態條 */}
+      <div className="bg-[#131722] p-3 rounded border border-[#2a2e39]/50 mb-3 flex-shrink-0">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[9px] text-[#787b86] font-bold uppercase tracking-wider">
+            渲染幀率 (Frame Rate)
+          </span>
+          <span className="font-mono-tv text-xs font-bold text-[#eceef2]">{stats.fps} FPS</span>
         </div>
-        <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-900">
-          <div className="text-xs text-slate-500">累計接收 Tick</div>
-          <div className="text-2xl font-mono font-extrabold text-indigo-400 mt-1">
-            {stats.totalTicks}
-          </div>
+        <div className="w-full bg-[#2a2e39] h-1.5 rounded-full overflow-hidden">
+          <div
+            className={`h-full transition-all duration-500 ease-out ${
+              stats.fps >= 55 ? 'bg-[#089981]' : stats.fps >= 40 ? 'bg-[#ff9800]' : 'bg-[#f23645]'
+            }`}
+            style={{ width: `${Math.min((stats.fps / 60) * 100, 100)}%` }}
+          />
         </div>
-        <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-900">
-          <div className="text-xs text-slate-500">環狀快取容量</div>
-          <div className="text-2xl font-mono font-extrabold text-emerald-400 mt-1 flex items-baseline gap-1">
-            {stats.historySize}{' '}
-            <span className="text-xs text-slate-600 font-normal">
-              / {CHART_CONSTANTS.BUFFER_CAPACITY}
+      </div>
+
+      {/* 效能指標網格面板 */}
+      <div className="grid grid-cols-3 gap-2.5">
+        <div className="bg-[#131722] p-2.5 rounded border border-[#2a2e39]/50 flex flex-col">
+          <span className="text-[8px] text-[#787b86] font-bold uppercase tracking-wider mb-1">
+            累計撮合數
+          </span>
+          <span className="font-mono-tv text-sm font-bold text-[#2962ff] truncate">
+            {stats.totalTicks.toLocaleString()}
+          </span>
+        </div>
+
+        <div className="bg-[#131722] p-2.5 rounded border border-[#2a2e39]/50 flex flex-col">
+          <span className="text-[8px] text-[#787b86] font-bold uppercase tracking-wider mb-1">
+            快取緩衝池
+          </span>
+          <span className="font-mono-tv text-sm font-bold text-[#089981] truncate">
+            {stats.historySize}
+            <span className="text-[8px] text-[#787b86] font-normal ml-0.5">
+              /{CHART_CONSTANTS.BUFFER_CAPACITY}
             </span>
-          </div>
+          </span>
         </div>
-        <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-900">
-          <div className="text-xs text-slate-500">即時吞吐量</div>
-          <div className="text-2xl font-mono font-extrabold text-amber-400 mt-1 flex items-baseline gap-1">
-            {stats.throughput} <span className="text-xs text-slate-600 font-normal">t/s</span>
-          </div>
+
+        <div className="bg-[#131722] p-2.5 rounded border border-[#2a2e39]/50 flex flex-col">
+          <span className="text-[8px] text-[#787b86] font-bold uppercase tracking-wider mb-1">
+            數據吞吐量
+          </span>
+          <span className="font-mono-tv text-sm font-bold text-[#ff9800] truncate">
+            {stats.throughput}
+            <span className="text-[8px] text-[#787b86] font-normal ml-0.5">t/s</span>
+          </span>
         </div>
       </div>
     </section>

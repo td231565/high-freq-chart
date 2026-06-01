@@ -6,7 +6,14 @@ import globals from 'globals';
 
 export default [
   {
-    ignores: ['.next/**', 'node_modules/**', 'dist/**', 'scripts/mock-server.js', 'webwright/**', '.venv/**'],
+    ignores: [
+      '.next/**',
+      'node_modules/**',
+      'dist/**',
+      'scripts/mock-server.js',
+      'webwright/**',
+      '.venv/**',
+    ],
   },
   js.configs.recommended,
   {

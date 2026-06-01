@@ -7,18 +7,30 @@ import type { TickData } from '../types/chart';
 import { CHART_CONSTANTS } from '../constants/chart';
 import PerformanceMonitor from '../components/PerformanceMonitor';
 
-// 使用 next/dynamic 以 ssr: false 模式動態載入 TradingChart 元件，防止 SSR 水合錯誤，且不使用 suppressHydrationWarning
+// 使用 next/dynamic 以 ssr: false 載入 TradingChart 以避免 SSR 水合衝突
 const TradingChart = dynamic(() => import('../components/TradingChart'), {
   ssr: false,
   loading: () => (
-    <div className="h-[500px] w-full flex items-center justify-center bg-slate-950 border border-slate-900 rounded-2xl">
-      <div className="text-slate-500 text-sm flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-        <span>圖表載入中...</span>
+    <div className="h-[520px] w-full flex items-center justify-center bg-[#1c2030] border border-[#2a2e39] rounded-lg shadow-xl">
+      <div className="text-[#787b86] text-xs flex flex-col items-center gap-3">
+        <div className="w-6 h-6 border-2 border-[#2962ff] border-t-transparent rounded-full animate-spin" />
+        <span className="font-mono-tv">CONNECTING ENGINE...</span>
       </div>
     </div>
   ),
 });
+
+interface TradeItem extends TickData {
+  size: number;
+  side: 'BUY' | 'SELL';
+}
+
+interface LogItem {
+  id: string;
+  time: string;
+  msg: string;
+  type: 'info' | 'success' | 'warn';
+}
 
 export default function Home() {
   const { connectionStatus, connect, disconnect, clearData, subscribeTick, subscribeHistory } =
@@ -26,146 +38,173 @@ export default function Home() {
       wsUrl: CHART_CONSTANTS.DEFAULT_WS_URL,
     });
 
-  // 連線狀態的樣式
-  const getStatusColor = () => {
+  const [logs, setLogs] = useState<LogItem[]>([]);
+
+  // 當連線狀態改變時，更新系統通訊日誌 (Telemetry System Logs)
+  useEffect(() => {
+    const timeStr = new Date().toLocaleTimeString();
+    let msg = '';
+    let type: 'info' | 'success' | 'warn' = 'info';
+
     switch (connectionStatus) {
       case 'CONNECTED':
-        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+        msg = 'Connection established. Handshakes complete.';
+        type = 'success';
+        break;
       case 'CONNECTING':
+        msg = 'Connecting to high-frequency WebSocket...';
+        type = 'info';
+        break;
       case 'RECONNECTING':
-        return 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse';
+        msg = 'Link interrupted. Retrying exponential backoff...';
+        type = 'warn';
+        break;
       case 'DISCONNECTED':
-        return 'bg-slate-800 text-slate-400 border-slate-700';
-      default:
-        return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+        msg = 'Terminal offline. Safe release of active buffers.';
+        type = 'info';
+        break;
     }
-  };
+
+    setLogs((prev) => [
+      { id: Math.random().toString(), time: timeStr, msg, type },
+      ...prev.slice(0, 10), // 保留最近 10 筆
+    ]);
+  }, [connectionStatus]);
 
   return (
-    <main className="min-h-screen bg-[#020617] text-slate-100 p-6 md:p-12 flex flex-col justify-between max-w-7xl mx-auto space-y-8">
-      {/* 標題與簡介 */}
-      <header className="border-b border-slate-900 pb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-            高頻交易圖表 MVP - 實時 Canvas 渲染
+    <main className="min-h-screen bg-[#131722] text-[#d1d4dc] p-3 md:p-6 flex flex-col justify-between max-w-[1600px] mx-auto space-y-4">
+      {/* 類 TradingView 極簡頂部 Header 列 */}
+      <header className="h-10 min-h-[40px] flex items-center justify-between border-b border-[#2a2e39] pb-3 select-none">
+        <div className="flex items-center space-x-2">
+          <div className="w-2.5 h-5 bg-[#2962ff] rounded-sm" />
+          <h1 className="text-sm font-bold tracking-wider text-[#eceef2] font-mono-tv">
+            ANTIGRAVITY TERMINAL
           </h1>
-          <p className="text-slate-400 mt-2 text-sm max-w-2xl">
-            本專案實作了高效能的環狀緩衝區 (
-            <code className="text-indigo-400">circular-buffer.ts</code>)、背景 Web Worker
-            數據緩衝與斷線指數退避重連，並採用{' '}
-            <code className="text-indigo-400">lightweight-charts</code> 進行 Canvas 直流渲染。
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500 font-mono">系統時鐘: </span>
-          <span className="text-xs text-slate-300 font-mono bg-slate-950 px-2.5 py-1 rounded-md border border-slate-900">
-            2026-06-01
+          <span className="text-[10px] bg-[#1c2030] text-[#2962ff] border border-[#2962ff]/20 px-1.5 py-0.5 rounded font-bold">
+            PRO v3.5
           </span>
+        </div>
+        <div className="flex items-center space-x-4 text-[11px] text-[#787b86]">
+          <div className="flex items-center space-x-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#089981]" />
+            <span>Server Time:</span>
+            <span className="font-mono-tv text-[#eceef2]">2026-06-01 16:58:34</span>
+          </div>
         </div>
       </header>
 
-      {/* 主內容區：雙欄排版 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* 左側與中間：高頻交易圖表 (佔二分之一寬度以上) */}
-        <div className="lg:col-span-2 h-[500px]">
-          <TradingChart
-            connectionStatus={connectionStatus}
-            subscribeTick={subscribeTick}
-            subscribeHistory={subscribeHistory}
-          />
-        </div>
+      {/* 交易所終端網格排版 */}
+      <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 items-stretch flex-1">
+        {/* 左側：大圖表與即時成交明細 (佔比 72%) */}
+        <div className="lg:col-span-7 flex flex-col space-y-4 min-h-[780px]">
+          {/* 圖表渲染區 */}
+          <div className="h-[520px] flex-shrink-0">
+            <TradingChart
+              connectionStatus={connectionStatus}
+              subscribeTick={subscribeTick}
+              subscribeHistory={subscribeHistory}
+              connect={connect}
+              disconnect={disconnect}
+              clearData={clearData}
+            />
+          </div>
 
-        {/* 右側：控制面板與指標監控 */}
-        <div className="space-y-6">
-          {/* 連線控制 */}
-          <section className="bg-slate-950 border border-slate-900 rounded-2xl p-6 space-y-6 shadow-xl">
-            <h2 className="text-base font-bold text-slate-200 flex items-center gap-2">
-              <span className="w-1.5 h-3 bg-indigo-500 rounded-full" />
-              連線狀態控制
-            </h2>
-
-            <div className="flex items-center justify-between bg-slate-900/40 p-4 rounded-xl border border-slate-900">
-              <div className="flex items-center gap-3">
-                <span
-                  className={`px-3 py-1 text-xs font-semibold rounded-full border ${getStatusColor()}`}
-                >
-                  {connectionStatus}
-                </span>
-              </div>
-              <span className="text-xs text-slate-500 font-mono">
-                {CHART_CONSTANTS.DEFAULT_WS_URL.replace('ws://', '')}
+          {/* 實時成交明細 (Public Trades Log) */}
+          <div className="flex-1 bg-[#1c2030] border border-[#2a2e39] rounded-lg p-4 flex flex-col min-h-[220px]">
+            <div className="flex items-center justify-between mb-3 border-b border-[#2a2e39] pb-2 select-none">
+              <h2 className="text-xs font-bold text-[#eceef2] flex items-center space-x-1.5 uppercase tracking-wider font-mono-tv">
+                <span className="w-1 h-2.5 bg-[#089981] rounded-sm" />
+                <span>實時成交明細 (Public Trades)</span>
+              </h2>
+              <span className="text-[10px] text-[#787b86] font-mono-tv bg-[#131722] px-2 py-0.5 rounded">
+                Feed: 100 t/s
               </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <button
-                onClick={() => connect()}
-                disabled={connectionStatus === 'CONNECTED' || connectionStatus === 'CONNECTING'}
-                className="px-3 py-2.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:hover:bg-indigo-600 text-white rounded-xl transition-all border border-indigo-500/30 hover:border-indigo-400 active:scale-95 duration-100"
-              >
-                手動連線
-              </button>
-              <button
-                onClick={disconnect}
-                disabled={connectionStatus === 'DISCONNECTED'}
-                className="px-3 py-2.5 text-xs font-semibold bg-slate-900 hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-slate-900 text-slate-300 rounded-xl transition-all border border-slate-800 active:scale-95 duration-100"
-              >
-                手動中斷
-              </button>
-              <button
-                onClick={clearData}
-                className="px-3 py-2.5 text-xs font-semibold bg-rose-950/20 hover:bg-rose-900/30 text-rose-400 rounded-xl transition-all border border-rose-900/30 active:scale-95 duration-100"
-              >
-                清空數據
-              </button>
+            <div className="flex-1 overflow-y-auto">
+              <PublicTradesList subscribeTick={subscribeTick} />
             </div>
+          </div>
+        </div>
 
-            <div className="text-xs text-slate-500 bg-slate-900/20 p-4 rounded-xl border border-slate-900/50 leading-relaxed space-y-1">
-              <p className="font-semibold text-slate-400">💡 分頁生命週期測試：</p>
-              <p>
-                切換到瀏覽器其他分頁數秒後切回，終端機將顯示 WebSocket 已因 Page Visibility API
-                自動中斷釋放，切回前景後將秒級自動重連並重拉歷史快照，圖表上會自動留下斷線期間的
-                <strong>數據空白區 (Whitespace)</strong>。
-              </p>
-            </div>
-          </section>
-
-          {/* 效能監控面板 */}
+        {/* 右側：系統 Telemetry 監控與連線診斷日誌 (佔比 28%) */}
+        <div className="lg:col-span-3 flex flex-col space-y-4">
+          {/* 系統效能診斷 */}
           <PerformanceMonitor subscribeTick={subscribeTick} subscribeHistory={subscribeHistory} />
+
+          {/* 連線診斷日誌 */}
+          <div className="flex-1 bg-[#1c2030] border border-[#2a2e39] rounded-lg p-4 flex flex-col min-h-[300px]">
+            <h2 className="text-xs font-bold text-[#eceef2] mb-3 border-b border-[#2a2e39] pb-2 uppercase tracking-wider flex items-center space-x-1.5 font-mono-tv select-none">
+              <span className="w-1 h-2.5 bg-[#2962ff] rounded-sm" />
+              <span>連線診斷日誌 (System Logs)</span>
+            </h2>
+
+            <div className="flex-1 overflow-y-auto font-mono-tv text-[11px] space-y-2 select-text">
+              {logs.length === 0 ? (
+                <div className="text-[#787b86] h-full flex items-center justify-center">
+                  NO TELEMETRY LOG RECORDED
+                </div>
+              ) : (
+                logs.map((log) => (
+                  <div key={log.id} className="flex items-start space-x-2 leading-relaxed">
+                    <span className="text-[#787b86] flex-shrink-0">[{log.time}]</span>
+                    <span
+                      className={
+                        log.type === 'success'
+                          ? 'text-[#089981]'
+                          : log.type === 'warn'
+                            ? 'text-[#ff9800]'
+                            : 'text-[#2962ff]'
+                      }
+                    >
+                      {log.type === 'success' ? '✓' : log.type === 'warn' ? '⚠' : 'ℹ'}
+                    </span>
+                    <span className="text-[#eceef2] break-all">{log.msg}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* 靜態提示 */}
+          <div className="bg-[#1c2030]/50 border border-[#2a2e39] p-4 rounded-lg select-none">
+            <h3 className="text-[11px] font-bold text-[#eceef2] mb-1 font-mono-tv uppercase">
+              💡 分頁管理與頻寬優化
+            </h3>
+            <p className="text-[10px] text-[#787b86] leading-relaxed">
+              當您切換到其他瀏覽器分頁時，診斷日誌會記錄連線已自動釋放，切回前景後秒級重連。這是系統利用
+              Visibility API 避免高頻背景快取積壓的優化策略。
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* 底部數據流 */}
-      <section className="bg-slate-950 border border-slate-900 rounded-2xl p-6 space-y-4 shadow-xl">
-        <h2 className="text-base font-bold text-slate-200 flex items-center gap-2">
-          <span className="w-1.5 h-3 bg-purple-500 rounded-full" />
-          近期 Tick 數據監控 (快取最近 5 筆，React 獨立訂閱避免主頁重繪)
-        </h2>
-        <div className="bg-slate-900/20 rounded-xl border border-slate-900 p-4 divide-y divide-slate-900 font-mono text-xs text-slate-400">
-          <TickList subscribeTick={subscribeTick} />
-        </div>
-      </section>
-
-      <footer className="text-center text-xs text-slate-600 mt-12 border-t border-slate-900 pt-6">
-        高頻交易圖表系統 MVP &copy; 2026. All rights reserved.
+      <footer className="text-center text-[10px] text-[#787b86] pt-3 border-t border-[#2a2e39] select-none">
+        ANTIGRAVITY HIGH-FREQUENCY TERMINAL MVP &copy; 2026. All rights reserved.
       </footer>
     </main>
   );
 }
 
-// 輔助組件：獨立訂閱最新 Tick 以維護最近五筆列表，避免主 Page 頻繁重繪
-function TickList({
+// 實時公眾交易明細組件：獨立訂閱最新 Tick，避免主 Page 重新渲染
+function PublicTradesList({
   subscribeTick,
 }: {
   subscribeTick: (cb: (tick: TickData) => void) => () => void;
 }) {
-  const [list, setList] = useState<TickData[]>([]);
+  const [list, setList] = useState<TradeItem[]>([]);
 
   useEffect(() => {
     const unsubscribe = subscribeTick((tick) => {
       setList((prev) => {
-        const newList = [tick, ...prev];
-        return newList.slice(0, 5);
+        // 模擬加密貨幣成交明細，包含隨機交易數量與交易方向 (BUY / SELL)
+        const tradeItem: TradeItem = {
+          ...tick,
+          size: Math.random() * 0.94 + 0.008, // 模擬介於 0.008 BTC - 0.948 BTC 之間的成交量
+          side: Math.random() > 0.49 ? 'BUY' : 'SELL', // 隨機買賣方向
+        };
+        const newList = [tradeItem, ...prev];
+        return newList.slice(0, 18); // 僅保留 18 筆成交記錄
       });
     });
     return unsubscribe;
@@ -173,20 +212,50 @@ function TickList({
 
   if (list.length === 0) {
     return (
-      <div className="h-16 flex items-center justify-center text-slate-600 text-sm">
-        等待 WebSocket 推送數據... (請確認已在背景啟動 mock-server)
+      <div className="h-full flex items-center justify-center text-[#787b86] text-xs font-mono-tv select-none">
+        WAITING FOR ENGINE TELEMETRY... (PLEASE START THE MOCK-SERVER)
       </div>
     );
   }
 
   return (
-    <>
-      {list.map((item, idx) => (
-        <div key={item.time + '-' + idx} className="flex justify-between py-2.5">
-          <span className="text-slate-500">{new Date(item.time).toLocaleTimeString()}</span>
-          <span className="text-emerald-400 font-bold font-mono">${item.price.toFixed(2)}</span>
-        </div>
-      ))}
-    </>
+    <div className="w-full">
+      {/* 欄位表頭 */}
+      <div className="grid grid-cols-4 text-[10px] text-[#787b86] font-bold uppercase tracking-wider pb-2 border-b border-[#2a2e39]/50 select-none">
+        <span>時間 (Time)</span>
+        <span>價格 (Price USDT)</span>
+        <span className="text-right">數量 (Size BTC)</span>
+        <span className="text-right">類型 (Type)</span>
+      </div>
+
+      {/* 數據滾動列表 */}
+      <div className="divide-y divide-[#2a2e39]/20 font-mono-tv text-xs mt-1">
+        {list.map((trade, idx) => (
+          <div
+            key={trade.time + '-' + idx}
+            className="grid grid-cols-4 py-2 transition-all duration-300 hover:bg-[#2a2e39]/20 animate-fade-in"
+          >
+            <span className="text-[#787b86]">{new Date(trade.time).toLocaleTimeString()}</span>
+            <span
+              className={
+                trade.side === 'BUY' ? 'text-[#089981] font-bold' : 'text-[#f23645] font-bold'
+              }
+            >
+              ${trade.price.toFixed(2)}
+            </span>
+            <span className="text-right text-[#eceef2]">{trade.size.toFixed(4)}</span>
+            <span
+              className={
+                trade.side === 'BUY'
+                  ? 'text-right font-bold text-[#089981] text-[10px]'
+                  : 'text-right font-bold text-[#f23645] text-[10px]'
+              }
+            >
+              {trade.side === 'BUY' ? '▲ BUY' : '▼ SELL'}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
