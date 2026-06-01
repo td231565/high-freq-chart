@@ -40,3 +40,7 @@ Thumbs.db
 # bun
 bun.lockb
 .bun
+
+# tools
+/webwright
+

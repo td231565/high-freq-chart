@@ -186,11 +186,11 @@ bunx prettier --write .
   - [x] 在 Hook 中使用 `useRef` 儲存最新的 Tick 數據與歷史資料，並設計**訂閱者模式 (onTick callback)** 將高頻數據流與 React 渲染流分離，避免觸發 React 重繪
   - [x] 整合 Page Visibility API，在頁面進入背景時通知 Worker 關閉連線，返回前景時重新連線，並在圖表上處理斷線期間的「數據空白區 (Whitespace)」
   - [x] 限制 `GET_DATA` 指令的調用時機，僅在圖表初始化與重連成功後執行一次，禁止在高頻更新中呼叫以避免 GC 壓力
-- [ ] 階段四：圖表與動態 UI 渲染實作
-  - [ ] 使用 `next/dynamic` 以 `ssr: false` 模式動態載入 `TradingChart.tsx`，避免 SSR 水合錯誤，且不使用 `suppressHydrationWarning`
-  - [ ] 建立 `components/TradingChart.tsx` 元件，初始化 `lightweight-charts` (v5.2.0) 的 Canvas 繪圖區，並訂閱 Hook 的數據流直接調用 `series.update()`
-  - [ ] 於主執行緒中實作圖表數據更新節流（例如 30ms ~ 50ms 批次更新），降低圖表在高頻 Tick 推送下的重繪 CPU 佔用率
-  - [ ] 使用 `useRef` 取得價格顯示的 HTML 元素，在主執行緒的 `requestAnimationFrame` (rAF) 循環中實作 100ms 節流，直接修改 `innerText` 進行高頻更新
+- [x] 階段四：圖表與動態 UI 渲染實作
+  - [x] 使用 `next/dynamic` 以 `ssr: false` 模式動態載入 `TradingChart.tsx`，避免 SSR 水合錯誤，且不使用 `suppressHydrationWarning`
+  - [x] 建立 `components/TradingChart.tsx` 元件，初始化 `lightweight-charts` (v5.2.0) 的 Canvas 繪圖區，並訂閱 Hook 的數據流直接調用 `series.update()`
+  - [x] 於主執行緒中實作圖表數據更新節流（例如 30ms ~ 50ms 批次更新），降低圖表在高頻 Tick 推送下的重繪 CPU 佔用率
+  - [x] 使用 `useRef` 取得價格顯示的 HTML 元素，在主執行緒的 `requestAnimationFrame` (rAF) 循環中實作 100ms 節流，直接修改 `innerText` 進行高頻更新
 - [ ] 階段五：效能監控與品質驗證
   - [ ] 建立 `components/PerformanceMonitor.tsx`，使用 rAF 統計並即時顯示 FPS，且每秒更新一次接收的 Tick 吞吐量（每秒僅重繪一次 React UI）
   - [ ] 執行 `bunx eslint .` 與 `bunx prettier --write .` 進行代碼規範驗證

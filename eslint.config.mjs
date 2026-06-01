@@ -5,6 +5,9 @@ import tsParser from '@typescript-eslint/parser';
 import globals from 'globals';
 
 export default [
+  {
+    ignores: ['.next/**', 'node_modules/**', 'dist/**', 'scripts/mock-server.js'],
+  },
   js.configs.recommended,
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
