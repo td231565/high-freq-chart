@@ -439,7 +439,7 @@ export default function TradingChart({
             {/* 控制按鈕組：包含清楚中文文字與精緻圖案 */}
             <div className="flex items-center space-x-2">
               <button
-                onClick={connect}
+                onClick={() => connect()}
                 disabled={connectionStatus === 'CONNECTED' || connectionStatus === 'CONNECTING'}
                 title="手動建立 WebSocket 連線"
                 className="flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold bg-[#089981]/10 text-[#089981] hover:bg-[#089981]/20 disabled:opacity-20 disabled:hover:bg-[#089981]/10 rounded border border-[#089981]/30 cursor-pointer transition-all active:scale-95 duration-100"

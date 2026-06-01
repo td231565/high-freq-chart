@@ -55,9 +55,10 @@ export function useHighFrequencyData(options: UseHighFrequencyDataOptions = {}) 
 
   // 手動控制連線：CONNECT
   const connect = useCallback(
-    (url: string = wsUrl) => {
+    (url?: unknown) => {
       if (workerRef.current) {
-        const cmd: WorkerCommand = { type: 'CONNECT', url };
+        const targetUrl = typeof url === 'string' ? url : wsUrl;
+        const cmd: WorkerCommand = { type: 'CONNECT', url: targetUrl };
         workerRef.current.postMessage(cmd);
       }
     },
