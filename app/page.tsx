@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useHighFrequencyData } from '../hooks/useHighFrequencyData';
 import type { TickData } from '../types/chart';
 import { CHART_CONSTANTS } from '../constants/chart';
+import PerformanceMonitor from '../components/PerformanceMonitor';
 
 // 使用 next/dynamic 以 ssr: false 模式動態載入 TradingChart 元件，防止 SSR 水合錯誤，且不使用 suppressHydrationWarning
 const TradingChart = dynamic(() => import('../components/TradingChart'), {
@@ -24,50 +25,6 @@ export default function Home() {
     useHighFrequencyData({
       wsUrl: CHART_CONSTANTS.DEFAULT_WS_URL,
     });
-
-  const [historySize, setHistorySize] = useState<number>(0);
-  const [tickCount, setTickCount] = useState<number>(0);
-  const [fps, setFps] = useState<number>(0);
-
-  // 1. 訂閱單一 Tick，並計算收到的 Tick 總數
-  useEffect(() => {
-    const unsubscribe = subscribeTick((_tick) => {
-      setTickCount((prev) => prev + 1);
-    });
-    return unsubscribe;
-  }, [subscribeTick]);
-
-  // 2. 訂閱歷史快照，確認 GET_DATA 回傳的大小
-  useEffect(() => {
-    const unsubscribe = subscribeHistory((history) => {
-      setHistorySize(history.length);
-    });
-    return unsubscribe;
-  }, [subscribeHistory]);
-
-  // 3. 計算即時 FPS 用以佐證渲染效能 (rAF)
-  useEffect(() => {
-    let lastTime = performance.now();
-    let frameCount = 0;
-    let animationFrameId: number;
-
-    const calculateFps = () => {
-      const now = performance.now();
-      frameCount++;
-
-      if (now - lastTime >= 1000) {
-        setFps(Math.round((frameCount * 1000) / (now - lastTime)));
-        frameCount = 0;
-        lastTime = now;
-      }
-      animationFrameId = requestAnimationFrame(calculateFps);
-    };
-
-    animationFrameId = requestAnimationFrame(calculateFps);
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
 
   // 連線狀態的樣式
   const getStatusColor = () => {
@@ -174,42 +131,7 @@ export default function Home() {
           </section>
 
           {/* 效能監控面板 */}
-          <section className="bg-slate-950 border border-slate-900 rounded-2xl p-6 space-y-4 shadow-xl">
-            <h2 className="text-base font-bold text-slate-200 flex items-center gap-2">
-              <span className="w-1.5 h-3 bg-emerald-500 rounded-full" />
-              效能與數據快取
-            </h2>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-900">
-                <div className="text-xs text-slate-500">主執行緒 FPS</div>
-                <div className="text-2xl font-mono font-extrabold text-slate-200 mt-1 flex items-baseline gap-1">
-                  {fps} <span className="text-xs text-slate-600 font-normal">fps</span>
-                </div>
-              </div>
-              <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-900">
-                <div className="text-xs text-slate-500">累計接收 Tick</div>
-                <div className="text-2xl font-mono font-extrabold text-indigo-400 mt-1">
-                  {tickCount}
-                </div>
-              </div>
-              <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-900">
-                <div className="text-xs text-slate-500">環狀快取容量</div>
-                <div className="text-2xl font-mono font-extrabold text-emerald-400 mt-1 flex items-baseline gap-1">
-                  {historySize}{' '}
-                  <span className="text-xs text-slate-600 font-normal">
-                    / {CHART_CONSTANTS.BUFFER_CAPACITY}
-                  </span>
-                </div>
-              </div>
-              <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-900">
-                <div className="text-xs text-slate-500">接收推送頻率</div>
-                <div className="text-2xl font-mono font-extrabold text-amber-400 mt-1 flex items-baseline gap-1">
-                  ~100 <span className="text-xs text-slate-600 font-normal">t/s</span>
-                </div>
-              </div>
-            </div>
-          </section>
+          <PerformanceMonitor subscribeTick={subscribeTick} subscribeHistory={subscribeHistory} />
         </div>
       </div>
 

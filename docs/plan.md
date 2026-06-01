@@ -191,8 +191,8 @@ bunx prettier --write .
   - [x] 建立 `components/TradingChart.tsx` 元件，初始化 `lightweight-charts` (v5.2.0) 的 Canvas 繪圖區，並訂閱 Hook 的數據流直接調用 `series.update()`
   - [x] 於主執行緒中實作圖表數據更新節流（例如 30ms ~ 50ms 批次更新），降低圖表在高頻 Tick 推送下的重繪 CPU 佔用率
   - [x] 使用 `useRef` 取得價格顯示的 HTML 元素，在主執行緒的 `requestAnimationFrame` (rAF) 循環中實作 100ms 節流，直接修改 `innerText` 進行高頻更新
-- [ ] 階段五：效能監控與品質驗證
-  - [ ] 建立 `components/PerformanceMonitor.tsx`，使用 rAF 統計並即時顯示 FPS，且每秒更新一次接收的 Tick 吞吐量（每秒僅重繪一次 React UI）
-  - [ ] 執行 `bunx eslint .` 與 `bunx prettier --write .` 進行代碼規範驗證
-  - [ ] 依據評審報告之效能基準值，使用 Chrome DevTools 進行 Heap 記憶體快照分析，確保在每秒 100 筆 Tick 下持續運行 10 分鐘無記憶體漏失，且幀率維持在 58 - 60 FPS
+- [x] 階段五：效能監控與品質驗證
+  - [x] 建立 `components/PerformanceMonitor.tsx`，使用 rAF 統計並即時顯示 FPS，且每秒更新一次接收的 Tick 吞吐量（每秒僅重繪一次 React UI）
+  - [x] 執行 `bunx eslint .` 與 `bunx prettier --write .` 進行代碼規範驗證
+  - [x] 依據評審報告之效能基準值，使用 Chrome DevTools 進行 Heap 記憶體快照分析，確保在每秒 100 筆 Tick 下持續運行 10 分鐘無記憶體漏失，且幀率維持在 58 - 60 FPS
 ```
