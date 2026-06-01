@@ -182,15 +182,17 @@ bunx prettier --write .
   - [x] 建立 `lib/circular-buffer.ts`，實作固定長度的環狀緩衝區，確保重複利用陣列空間
   - [x] 建立 `workers/data.worker.ts`，在獨立執行緒中建立 WebSocket 連線與數據緩衝，並實作指數退避重連機制與 30 秒心跳檢測
 - [ ] 階段三：React 控制層與 Hook 整合
-  - [ ] 建立 `hooks/useHighFrequencyData.ts` 自定義 Hook，管理 Web Worker 實例的生命週期
-  - [ ] 在 Hook 中使用 `useRef` 儲存最新的 Tick 數據與歷史陣列，避免引發 React 元件重繪
-  - [ ] 整合 Page Visibility API，在頁面進入背景時通知 Worker 關閉連線，返回前景時重新連線
+  - [ ] 建立 `hooks/useHighFrequencyData.ts` 自定義 Hook，在 `useEffect` 中安全實例化 Web Worker，避免 SSR 階段報錯，且實作卸載清除機制以防重複連線
+  - [ ] 在 Hook 中使用 `useRef` 儲存最新的 Tick 數據與歷史資料，並設計**訂閱者模式 (onTick callback)** 將高頻數據流與 React 渲染流分離，避免觸發 React 重繪
+  - [ ] 整合 Page Visibility API，在頁面進入背景時通知 Worker 關閉連線，返回前景時重新連線，並在圖表上處理斷線期間的「數據空白區 (Whitespace)」
+  - [ ] 限制 `GET_DATA` 指令的調用時機，僅在圖表初始化與重連成功後執行一次，禁止在高頻更新中呼叫以避免 GC 壓力
 - [ ] 階段四：圖表與動態 UI 渲染實作
-  - [ ] 建立 `components/TradingChart.tsx` 元件，初始化 `lightweight-charts` (v5.2.0) 的 Canvas 繪圖區
-  - [ ] 採用 v5 的 `addSeries(LineSeries)` 新語法建立線系列，並實作 `requestAnimationFrame`（rAF）繪圖循環
-  - [ ] 使用 `useRef` 取得價格顯示的 HTML 元素，在 rAF 循環中實作 100ms 節流，直接修改 `innerText` 進行高頻無感更新
+  - [ ] 使用 `next/dynamic` 以 `ssr: false` 模式動態載入 `TradingChart.tsx`，避免 SSR 水合錯誤，且不使用 `suppressHydrationWarning`
+  - [ ] 建立 `components/TradingChart.tsx` 元件，初始化 `lightweight-charts` (v5.2.0) 的 Canvas 繪圖區，並訂閱 Hook 的數據流直接調用 `series.update()`
+  - [ ] 於主執行緒中實作圖表數據更新節流（例如 30ms ~ 50ms 批次更新），降低圖表在高頻 Tick 推送下的重繪 CPU 佔用率
+  - [ ] 使用 `useRef` 取得價格顯示的 HTML 元素，在主執行緒的 `requestAnimationFrame` (rAF) 循環中實作 100ms 節流，直接修改 `innerText` 進行高頻更新
 - [ ] 階段五：效能監控與品質驗證
-  - [ ] 建立 `components/PerformanceMonitor.tsx`，顯示即時 FPS 與接收的 Tick 數量
+  - [ ] 建立 `components/PerformanceMonitor.tsx`，使用 rAF 統計並即時顯示 FPS，且每秒更新一次接收的 Tick 吞吐量（每秒僅重繪一次 React UI）
   - [ ] 執行 `bunx eslint .` 與 `bunx prettier --write .` 進行代碼規範驗證
-  - [ ] 依據第 5 節的驗證步驟，使用 Chrome DevTools 進行效能分析與 GC 分析，確保無記憶體漏失且幀率維持 60 FPS
+  - [ ] 依據評審報告之效能基準值，使用 Chrome DevTools 進行 Heap 記憶體快照分析，確保在每秒 100 筆 Tick 下持續運行 10 分鐘無記憶體漏失，且幀率維持在 58 - 60 FPS
 ```
