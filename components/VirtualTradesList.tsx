@@ -80,14 +80,14 @@ export default function VirtualTradesList({
     // 3. 原生 DOM 回收與覆寫
     for (let nodeIdx = 0; nodeIdx < N; nodeIdx++) {
       const cache = nodes[nodeIdx];
-      
+
       // 計算在此 nodeIdx 下，唯一的邏輯索引 i 位於 [startIndex, startIndex + N - 1]
       const offset = (nodeIdx - (startIndex % N) + N) % N;
       const i = startIndex + offset;
 
       if (i < totalCount) {
         // 有效邏輯索引：對應本地 CircularBuffer，最上方(邏輯索引 0)代表最新成交(數據索引 size - 1)
-        const dataIdx = (totalCount - 1) - i;
+        const dataIdx = totalCount - 1 - i;
         const tick = getTradeItem(dataIdx);
 
         if (tick) {
@@ -99,7 +99,7 @@ export default function VirtualTradesList({
           // 直接操作 textContent 與 className 更新內容，完全避免 DOM Diff 與 querySelector
           cache.timeEl.textContent = new Date(tick.time).toLocaleTimeString();
           cache.priceEl.textContent = `$${tick.price.toFixed(2)}`;
-          
+
           if (details.side === 'BUY') {
             cache.priceEl.className = 'text-[#089981] font-bold';
             cache.typeEl.className = 'text-right font-bold text-[#089981] text-[10px]';
@@ -156,27 +156,27 @@ export default function VirtualTradesList({
 
       const timeEl = document.createElement('span');
       timeEl.className = 'text-[#787b86]';
-      
+
       const priceEl = document.createElement('span');
-      
+
       const sizeEl = document.createElement('span');
       sizeEl.className = 'text-right text-[#eceef2]';
-      
+
       const typeEl = document.createElement('span');
-      
+
       el.appendChild(timeEl);
       el.appendChild(priceEl);
       el.appendChild(sizeEl);
       el.appendChild(typeEl);
-      
+
       runway.appendChild(el);
-      
+
       domNodes.push({
         el,
         timeEl,
         priceEl,
         sizeEl,
-        typeEl
+        typeEl,
       });
     }
 
@@ -250,7 +250,7 @@ export default function VirtualTradesList({
       {
         root: viewport,
         threshold: 0,
-      }
+      },
     );
 
     observer.observe(sentinel);
@@ -277,7 +277,7 @@ export default function VirtualTradesList({
           <span className="text-right">數量 (Size BTC)</span>
           <span className="text-right">類型 (Type)</span>
         </div>
-        <div 
+        <div
           className="w-full flex items-center justify-center text-[#787b86] text-xs font-mono-tv select-none border-b border-[#2a2e39]/20"
           style={{ height: `${VIEWPORT_HEIGHT}px` }}
         >

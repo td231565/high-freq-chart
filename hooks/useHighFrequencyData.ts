@@ -20,7 +20,7 @@ export function useHighFrequencyData(options: UseHighFrequencyDataOptions = {}) 
 
   // 於主執行緒同步緩衝數據，使用與 Worker 端規格一致的 CircularBuffer 快取 (上限 1000 筆)
   const historyRef = useRef<CircularBuffer<TickData>>(
-    new CircularBuffer<TickData>(VIRTUAL_LIST_CONSTANTS.TRADES_BUFFER_CAPACITY)
+    new CircularBuffer<TickData>(VIRTUAL_LIST_CONSTANTS.TRADES_BUFFER_CAPACITY),
   );
   const lastTickRef = useRef<TickData | null>(null);
 

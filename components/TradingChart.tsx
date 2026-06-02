@@ -427,7 +427,7 @@ export default function TradingChart({
               </span>
               <span className="text-[9px] text-[#787b86] uppercase font-bold tracking-wider">
                 {connectionStatus === 'CONNECTED'
-                  ? '連線中'
+                  ? '已連線'
                   : connectionStatus === 'DISCONNECTED'
                     ? '已中斷'
                     : '連線中'}

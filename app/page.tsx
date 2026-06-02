@@ -31,7 +31,7 @@ const VirtualTradesList = dynamic(() => import('../components/VirtualTradesList'
         <span className="text-right">數量 (Size BTC)</span>
         <span className="text-right">類型 (Type)</span>
       </div>
-      <div 
+      <div
         className="w-full flex items-center justify-center text-[#787b86] text-xs font-mono-tv select-none border-b border-[#2a2e39]/20"
         style={{ height: '240px' }}
       >
@@ -40,8 +40,6 @@ const VirtualTradesList = dynamic(() => import('../components/VirtualTradesList'
     </div>
   ),
 });
-
-
 
 interface LogItem {
   id: string;
@@ -148,13 +146,13 @@ export default function Home() {
               </span>
             </div>
 
-              <VirtualTradesList
-                getTradeCount={getTradeCount}
-                getTradeItem={getTradeItem}
-                subscribeTick={subscribeTick}
-                subscribeHistory={subscribeHistory}
-                setFrozen={setFrozen}
-              />
+            <VirtualTradesList
+              getTradeCount={getTradeCount}
+              getTradeItem={getTradeItem}
+              subscribeTick={subscribeTick}
+              subscribeHistory={subscribeHistory}
+              setFrozen={setFrozen}
+            />
           </div>
         </div>
 
@@ -216,5 +214,3 @@ export default function Home() {
     </main>
   );
 }
-
-
