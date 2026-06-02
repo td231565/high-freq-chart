@@ -29,3 +29,21 @@ export const CHART_CONSTANTS = {
 export type ChartConstants = typeof CHART_CONSTANTS;
 export type ValueOf<T> = T[keyof T];
 export type ChartConstantValue = ValueOf<ChartConstants>;
+
+/**
+ * 虛擬列表與成交明細快取控制常數
+ */
+export const VIRTUAL_LIST_CONSTANTS = {
+  /** 實時成交明細歷史快取最大筆數 */
+  TRADES_BUFFER_CAPACITY: 1000,
+
+  /** 明細列表單一項目高度（像素，用於虛擬列表高度計算） */
+  TRADE_ITEM_HEIGHT: 32,
+
+  /** 明細可視區域預設高度（像素） */
+  VIEWPORT_HEIGHT: 240,
+
+  /** 虛擬列表上下緩衝區節點數量（防止高速滾動露白） */
+  BUFFER_ITEMS_COUNT: 2,
+} as const;
+

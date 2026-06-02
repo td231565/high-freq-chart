@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ConnectionStatus, TickData, WorkerMessage, WorkerCommand } from '../types/chart';
-import { CHART_CONSTANTS } from '../constants/chart';
+import { CHART_CONSTANTS, VIRTUAL_LIST_CONSTANTS } from '../constants/chart';
+import { CircularBuffer } from '../lib/circular-buffer';
 
 export interface UseHighFrequencyDataOptions {
   wsUrl?: string;
@@ -17,16 +18,22 @@ export function useHighFrequencyData(options: UseHighFrequencyDataOptions = {}) 
   // 使用 useRef 保存 Worker 實例，避免多餘的重繪與重複建立
   const workerRef = useRef<Worker | null>(null);
 
-  // 於主執行緒同步緩衝數據，避免因寫入 React State 造成頻繁重繪 (每秒 100 次的效能瓶頸)
-  const historyRef = useRef<TickData[]>([]);
+  // 於主執行緒同步緩衝數據，使用與 Worker 端規格一致的 CircularBuffer 快取 (上限 1000 筆)
+  const historyRef = useRef<CircularBuffer<TickData>>(
+    new CircularBuffer<TickData>(VIRTUAL_LIST_CONSTANTS.TRADES_BUFFER_CAPACITY)
+  );
   const lastTickRef = useRef<TickData | null>(null);
+
+  // 實時更新之凍結狀態標記與暫存佇列
+  const isFrozenRef = useRef<boolean>(false);
+  const pendingTicksQueueRef = useRef<TickData[]>([]);
 
   // 使用 Set 管理訂閱者，提升查找與刪除效能
   const tickSubscribersRef = useRef<Set<(tick: TickData) => void>>(new Set());
   const historySubscribersRef = useRef<Set<(history: TickData[]) => void>>(new Set());
 
   // 暴露給外部的最新數據讀取方法 (使用 useCallback 保持參照穩定)
-  const getHistory = useCallback(() => historyRef.current, []);
+  const getHistory = useCallback(() => historyRef.current.toArray(), []);
   const getLastTick = useCallback(() => lastTickRef.current, []);
 
   // 訂閱單一高頻 Tick 的方法
@@ -45,13 +52,31 @@ export function useHighFrequencyData(options: UseHighFrequencyDataOptions = {}) 
   const subscribeHistory = useCallback((callback: (history: TickData[]) => void) => {
     historySubscribersRef.current.add(callback);
     // 若已有歷史數據，可立即觸發一次回呼以繪製初始圖表
-    if (historyRef.current.length > 0) {
-      callback(historyRef.current);
+    if (!historyRef.current.isEmpty()) {
+      callback(historyRef.current.toArray());
     }
     return () => {
       historySubscribersRef.current.delete(callback);
     };
   }, []);
+
+  // 控制是否凍結實時更新，並在解凍時批次寫入暫存資料
+  const setFrozen = useCallback((frozen: boolean) => {
+    isFrozenRef.current = frozen;
+    if (!frozen && pendingTicksQueueRef.current.length > 0) {
+      pendingTicksQueueRef.current.forEach((tick) => {
+        historyRef.current.push(tick);
+      });
+      pendingTicksQueueRef.current = [];
+      // 批次寫入後，通知歷史訂閱者
+      const currentHistory = historyRef.current.toArray();
+      historySubscribersRef.current.forEach((cb) => cb(currentHistory));
+    }
+  }, []);
+
+  // 暴露高效的原生局部讀取 API，防止虛擬列表在大陣列下頻繁 array copy
+  const getTradeCount = useCallback(() => historyRef.current.size(), []);
+  const getTradeItem = useCallback((index: number) => historyRef.current.get(index), []);
 
   // 手動控制連線：CONNECT
   const connect = useCallback(
@@ -79,7 +104,8 @@ export function useHighFrequencyData(options: UseHighFrequencyDataOptions = {}) 
       const cmd: WorkerCommand = { type: 'CLEAR' };
       workerRef.current.postMessage(cmd);
     }
-    historyRef.current = [];
+    historyRef.current.clear();
+    pendingTicksQueueRef.current = [];
     lastTickRef.current = null;
     // 同步通知訂閱者資料已清空
     historySubscribersRef.current.forEach((cb) => cb([]));
@@ -116,21 +142,22 @@ export function useHighFrequencyData(options: UseHighFrequencyDataOptions = {}) 
           const tick = msg.data;
           lastTickRef.current = tick;
 
-          // 在主執行緒同步維護一個長度限制的快取，避免無限增長佔用記憶體
-          const history = historyRef.current;
-          history.push(tick);
-          if (history.length > CHART_CONSTANTS.BUFFER_CAPACITY) {
-            history.shift();
+          if (isFrozenRef.current) {
+            // 凍結狀態：新收到的 Tick 暫存於佇列，不寫入主快取
+            pendingTicksQueueRef.current.push(tick);
+          } else {
+            // 未凍結狀態：推入 CircularBuffer，並廣播給 Tick 訂閱者
+            historyRef.current.push(tick);
+            tickSubscribersRef.current.forEach((cb) => cb(tick));
           }
-
-          // 廣播給所有 Tick 訂閱者 (直接修改 DOM / Canvas)
-          tickSubscribersRef.current.forEach((cb) => cb(tick));
           break;
         }
 
         case 'HISTORY': {
           const historyData = msg.data;
-          historyRef.current = historyData;
+          historyRef.current.clear();
+          historyData.forEach((tick) => historyRef.current.push(tick));
+
           if (historyData.length > 0) {
             lastTickRef.current = historyData[historyData.length - 1];
           }
@@ -141,7 +168,8 @@ export function useHighFrequencyData(options: UseHighFrequencyDataOptions = {}) 
         }
 
         case 'CLEARED': {
-          historyRef.current = [];
+          historyRef.current.clear();
+          pendingTicksQueueRef.current = [];
           lastTickRef.current = null;
           historySubscribersRef.current.forEach((cb) => cb([]));
           break;
@@ -185,5 +213,8 @@ export function useHighFrequencyData(options: UseHighFrequencyDataOptions = {}) 
     subscribeHistory,
     getHistory,
     getLastTick,
+    setFrozen,
+    getTradeCount,
+    getTradeItem,
   };
 }
