@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useHighFrequencyData } from '../hooks/useHighFrequencyData';
-import type { TickData } from '../types/chart';
+
 import { CHART_CONSTANTS } from '../constants/chart';
 import PerformanceMonitor from '../components/PerformanceMonitor';
 
@@ -20,10 +20,28 @@ const TradingChart = dynamic(() => import('../components/TradingChart'), {
   ),
 });
 
-interface TradeItem extends TickData {
-  size: number;
-  side: 'BUY' | 'SELL';
-}
+// 使用 next/dynamic 以 ssr: false 載入 VirtualTradesList
+const VirtualTradesList = dynamic(() => import('../components/VirtualTradesList'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full">
+      <div className="grid grid-cols-4 text-[10px] text-[#787b86] font-bold uppercase tracking-wider pb-2 border-b border-[#2a2e39]/50 select-none mb-1">
+        <span>時間 (Time)</span>
+        <span>價格 (Price USDT)</span>
+        <span className="text-right">數量 (Size BTC)</span>
+        <span className="text-right">類型 (Type)</span>
+      </div>
+      <div 
+        className="w-full flex items-center justify-center text-[#787b86] text-xs font-mono-tv select-none border-b border-[#2a2e39]/20"
+        style={{ height: '240px' }}
+      >
+        LOADING RECYCLE ENGINE...
+      </div>
+    </div>
+  ),
+});
+
+
 
 interface LogItem {
   id: string;
@@ -33,10 +51,19 @@ interface LogItem {
 }
 
 export default function Home() {
-  const { connectionStatus, connect, disconnect, clearData, subscribeTick, subscribeHistory } =
-    useHighFrequencyData({
-      wsUrl: CHART_CONSTANTS.DEFAULT_WS_URL,
-    });
+  const {
+    connectionStatus,
+    connect,
+    disconnect,
+    clearData,
+    subscribeTick,
+    subscribeHistory,
+    getTradeCount,
+    getTradeItem,
+    setFrozen,
+  } = useHighFrequencyData({
+    wsUrl: CHART_CONSTANTS.DEFAULT_WS_URL,
+  });
 
   const [logs, setLogs] = useState<LogItem[]>([]);
 
@@ -121,9 +148,13 @@ export default function Home() {
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto">
-              <PublicTradesList subscribeTick={subscribeTick} />
-            </div>
+              <VirtualTradesList
+                getTradeCount={getTradeCount}
+                getTradeItem={getTradeItem}
+                subscribeTick={subscribeTick}
+                subscribeHistory={subscribeHistory}
+                setFrozen={setFrozen}
+              />
           </div>
         </div>
 
@@ -186,76 +217,4 @@ export default function Home() {
   );
 }
 
-// 實時公眾交易明細組件：獨立訂閱最新 Tick，避免主 Page 重新渲染
-function PublicTradesList({
-  subscribeTick,
-}: {
-  subscribeTick: (cb: (tick: TickData) => void) => () => void;
-}) {
-  const [list, setList] = useState<TradeItem[]>([]);
 
-  useEffect(() => {
-    const unsubscribe = subscribeTick((tick) => {
-      setList((prev) => {
-        // 模擬加密貨幣成交明細，包含隨機交易數量與交易方向 (BUY / SELL)
-        const tradeItem: TradeItem = {
-          ...tick,
-          size: Math.random() * 0.94 + 0.008, // 模擬介於 0.008 BTC - 0.948 BTC 之間的成交量
-          side: Math.random() > 0.49 ? 'BUY' : 'SELL', // 隨機買賣方向
-        };
-        const newList = [tradeItem, ...prev];
-        return newList.slice(0, 18); // 僅保留 18 筆成交記錄
-      });
-    });
-    return unsubscribe;
-  }, [subscribeTick]);
-
-  if (list.length === 0) {
-    return (
-      <div className="h-full flex items-center justify-center text-[#787b86] text-xs font-mono-tv select-none">
-        WAITING FOR ENGINE TELEMETRY... (PLEASE START THE MOCK-SERVER)
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full">
-      {/* 欄位表頭 */}
-      <div className="grid grid-cols-4 text-[10px] text-[#787b86] font-bold uppercase tracking-wider pb-2 border-b border-[#2a2e39]/50 select-none">
-        <span>時間 (Time)</span>
-        <span>價格 (Price USDT)</span>
-        <span className="text-right">數量 (Size BTC)</span>
-        <span className="text-right">類型 (Type)</span>
-      </div>
-
-      {/* 數據滾動列表 */}
-      <div className="divide-y divide-[#2a2e39]/20 font-mono-tv text-xs mt-1">
-        {list.map((trade, idx) => (
-          <div
-            key={trade.time + '-' + idx}
-            className="grid grid-cols-4 py-2 transition-all duration-300 hover:bg-[#2a2e39]/20 animate-fade-in"
-          >
-            <span className="text-[#787b86]">{new Date(trade.time).toLocaleTimeString()}</span>
-            <span
-              className={
-                trade.side === 'BUY' ? 'text-[#089981] font-bold' : 'text-[#f23645] font-bold'
-              }
-            >
-              ${trade.price.toFixed(2)}
-            </span>
-            <span className="text-right text-[#eceef2]">{trade.size.toFixed(4)}</span>
-            <span
-              className={
-                trade.side === 'BUY'
-                  ? 'text-right font-bold text-[#089981] text-[10px]'
-                  : 'text-right font-bold text-[#f23645] text-[10px]'
-              }
-            >
-              {trade.side === 'BUY' ? '▲ BUY' : '▼ SELL'}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}

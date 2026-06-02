@@ -152,20 +152,20 @@ export const VIRTUAL_LIST_CONSTANTS = {
 
 ### 階段二：原生 DOM 虛擬列表與 Recycle 渲染器開發
 
-- [ ] 在 `components` 目錄下建立全新的 `VirtualTradesList.tsx` 元件。
-- [ ] 實作 `isMounted` 或 `next/dynamic(ssr: false)` 防禦性掛載檢查，確保不使用 `suppressHydrationWarning` 且無水合衝突。
-- [ ] 實作視窗計算器，依據設定的項目高度與可視高度，計算出需要建立的原生 DOM 節點數量。
-- [ ] 利用 `useRef` 及 `useEffect` 初始化這批 DOM 節點，並緩存其內部的子元素 DOM 引用。
-- [ ] 套用 `will-change: transform` 與 `contain: layout size`，並確保移除原有明細列表滾動時的 entry 慢速動畫。
-- [ ] 實作物理/邏輯逆向索引映射 `(buffer.size() - 1) - i` 與 `i >= buffer.size()` 節點隱藏機制。
-- [ ] 在滾動容器的最頂端嵌入 `1px` 透明的 `div` 作為哨兵元素，並初始化 `IntersectionObserver` 監聽其相交狀態。
-- [ ] 註冊 Viewport 滾動監聽時加入 `{ passive: true }`，並使用 rAF 進行渲染位置與內容更新。
+- [x] 在 `components` 目錄下建立全新的 `VirtualTradesList.tsx` 元件。
+- [x] 實作 `isMounted` 或 `next/dynamic(ssr: false)` 防禦性掛載檢查，確保不使用 `suppressHydrationWarning` 且無水合衝突。
+- [x] 實作視窗計算器，依據設定的項目高度與可視高度，計算出需要建立的原生 DOM 節點數量。
+- [x] 利用 `useRef` 及 `useEffect` 初始化這批 DOM 節點，並緩存其內部的子元素 DOM 引用。
+- [x] 套用 `will-change: transform` 與 `contain: layout size`，並確保移除原有明細列表滾動時的 entry 慢速動畫。
+- [x] 實作物理/邏輯逆向索引映射 `(buffer.size() - 1) - i` 與 `i >= buffer.size()` 節點隱藏機制。
+- [x] 在滾動容器的最頂端嵌入 `1px` 透明的 `div` 作為哨兵元素，並初始化 `IntersectionObserver` 監聽其相交狀態。
+- [x] 註冊 Viewport 滾動監聽時加入 `{ passive: true }`，並使用 rAF 進行渲染位置與內容更新。
 
 ### 階段三：滾動凍結機制與效能整合驗證
 
-- [ ] 實作哨兵元素狀態偵測邏輯，當非相交（不置頂）時，阻斷來自 Hook 的 `TICK` 寫入 HB，改為存入 `pendingTicksQueue`。
-- [ ] 建立懸浮「最新成交」按鈕，並在哨兵非相交時顯示，綁定點擊後解凍與滾動回頂端之互動。
-- [ ] 在組件的 `useEffect` 清除函式中，確實回收 rAF、相交觀測器、滾動事件監聽與記憶體佇列。
+- [x] 實作哨兵元素狀態偵測邏輯，當非相交（不置頂）時，阻斷來自 Hook 的 `TICK` 寫入 HB，改為存入 `pendingTicksQueue`。
+- [x] 建立懸浮「最新成交」按鈕，並在哨兵非相交時顯示，綁定點擊後解凍與滾動回頂端之互動。
+- [x] 在組件的 `useEffect` 清除函式中，確實回收 rAF、相交觀測器、滾動事件監聽與記憶體佇列。
 - [ ] 進行效能品質驗證：
   - 使用 Chrome DevTools 錄製效能軌跡，確保靜態更新與手動滾動歷史時，主執行緒皆維持在 **60 FPS**（無掉幀現象）。
   - 監控靜態滾動凍結狀態下，資料是否能保持絕對靜態不跳動，且解凍後能一次性流暢補齊。
