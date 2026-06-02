@@ -55,73 +55,14 @@ high-frequency-chart-mvp/
 
 ---
 
-## 3. 新增程式碼品質配置規格
-
-### 3.1 ESLint v10 扁平配置 (`eslint.config.mjs`)
-
-在 ESLint v10 中，全面採用扁平配置 (Flat Config)，不再使用舊版 `.eslintrc.json`。
-
-```javascript
-import { FlatCompat } from '@eslint/eslintrc';
-import js from '@eslint/js';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-});
-
-export default [
-  js.configs.recommended,
-  ...compat.extends('next/core-web-vitals'),
-  ...compat.extends('next/typescript'),
-  {
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'warn',
-      'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-    },
-    languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
-    },
-  },
-];
-```
-
-### 3.2 Prettier 配置 (`.prettierrc`)
-
-宣告統一的程式碼排版風格。
-
-```json
-{
-  "semi": true,
-  "singleQuote": true,
-  "tabWidth": 2,
-  "trailingComma": "all",
-  "printWidth": 100,
-  "arrowParens": "always"
-}
-```
-
----
-
-## 4. 如何啟動服務 (How to Start the Service)
+## 3. 如何啟動服務 (How to Start the Service)
 
 本專案完全使用 **Bun** 作為執行與套件管理工具。
 
 ### 步驟一：初始化專案與安裝依賴項目
 
 ```bash
-# 安裝生產環境依賴
-bun add next@16.2.6 react@19.0.0 react-dom@19.0.0 lightweight-charts@5.2.0 tailwindcss@4.3.0 @tailwindcss/postcss
-
-# 安裝開發與代碼品質規範工具 (ESLint v10, Prettier v3, TS v6)
-bun add -d typescript@6.0.3 eslint@10.4.1 eslint-config-next@16.2.6 prettier@3.8.3 @types/react@19.0.0 @types/react-dom@19.0.0 ws@8.21.0 bun-types@1.3.14
+bun install
 ```
 
 ### 步驟二：啟動 Mock WebSocket 伺服器
@@ -138,16 +79,16 @@ _預設將啟動於 `ws://localhost:8080`_
 ### 步驟三：啟動 Next.js 開發伺服器
 
 ```bash
-bun --hot dev
+bun dev
 ```
 
 _透過 Bun 的熱重載功能啟動開發伺服器於 `http://localhost:3000`_
 
 ---
 
-## 5. 如何驗證與測試 (How to Verify & Test)
+## 4. 如何驗證與測試 (How to Verify & Test)
 
-### 5.1 程式碼品質與排版驗證
+### 4.1 程式碼品質與排版驗證
 
 在開發過程中，可隨時透過 Bun 執行 Linter 與 Formatter 的檢查，確保代碼完全符合資深工程師的規範：
 
@@ -159,7 +100,7 @@ bunx eslint .
 bunx prettier --write .
 ```
 
-### 5.2 渲染效能與容錯驗證
+### 4.2 渲染效能與容錯驗證
 
 1. **FPS 與 CPU 監控**：開啟 Chrome DevTools 的 **Frame Rendering Stats**，確認在每秒 100 筆以上的高頻 Tick 推送下，畫面維持在 **58 - 60 FPS**。
 2. **記憶體 GC 監控**：在 DevTools Performance 面板錄製中，確認 **JS Heap** 曲線因環狀緩衝區（Circular Buffer）的記憶體重用而呈現平緩鋸齒狀，無大幅度垃圾回收或階梯式漏失。
@@ -167,7 +108,7 @@ bunx prettier --write .
 
 ---
 
-## 6. 開發階段 TODO 清單 (Development Phases)
+## 5. 開發階段 TODO 清單 (Development Phases)
 
 以下為本 MVP 專案的逐步開發指南：
 
