@@ -48,6 +48,7 @@ export default function VirtualTradesList({
 }: VirtualTradesListProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isAtTop, setIsAtTop] = useState(true);
+  const isAtTopRef = useRef(true);
 
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const runwayRef = useRef<HTMLDivElement | null>(null);
@@ -202,7 +203,9 @@ export default function VirtualTradesList({
     if (!isMounted) return;
 
     const unsubscribeTick = subscribeTick(() => {
-      scheduleRender();
+      if (isAtTopRef.current) {
+        scheduleRender();
+      }
     });
 
     const unsubscribeHistory = subscribeHistory(() => {
@@ -245,6 +248,7 @@ export default function VirtualTradesList({
       ([entry]) => {
         const atTop = entry.isIntersecting;
         setIsAtTop(atTop);
+        isAtTopRef.current = atTop;
         setFrozen(!atTop);
       },
       {

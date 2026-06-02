@@ -146,10 +146,12 @@ export function useHighFrequencyData(options: UseHighFrequencyDataOptions = {}) 
             // 凍結狀態：新收到的 Tick 暫存於佇列，不寫入主快取
             pendingTicksQueueRef.current.push(tick);
           } else {
-            // 未凍結狀態：推入 CircularBuffer，並廣播給 Tick 訂閱者
+            // 未凍結狀態：推入 CircularBuffer
             historyRef.current.push(tick);
-            tickSubscribersRef.current.forEach((cb) => cb(tick));
           }
+
+          // 無論是否凍結，皆廣播給全域 Tick 訂閱者 (例如圖表與效能監控)
+          tickSubscribersRef.current.forEach((cb) => cb(tick));
           break;
         }
 
